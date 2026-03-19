@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+pdfplumber
+google-genai
+supabase
+python-dotenv
+requests
+pydantic
+httpx
