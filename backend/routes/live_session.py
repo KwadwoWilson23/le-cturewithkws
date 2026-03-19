@@ -82,8 +82,9 @@ async def live_session_websocket(websocket: WebSocket, session_id: str):
                 await manager.send_voice_input(message["bytes"])
 
             elif "text" in message and message["text"]:
-                data = json.loads(message["text"])
-                msg_type = data.get("type")
+                try:
+                    data = json.loads(message["text"])
+                    msg_type = data.get("type")
 
                 if msg_type == "next_segment":
                     segment_index = data.get("segment_index", manager.current_segment + 1)
@@ -112,6 +113,8 @@ async def live_session_websocket(websocket: WebSocket, session_id: str):
                     question = data.get("text", "")
                     if question:
                         await manager.send_text_question(question)
+                except json.JSONDecodeError as e:
+                    await websocket.send_json({"type": "error", "message": f"Invalid JSON: {str(e)}"})
 
     except WebSocketDisconnect:
         pass

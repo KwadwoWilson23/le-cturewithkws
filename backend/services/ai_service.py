@@ -5,7 +5,11 @@ from google import genai
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    raise ValueError("❌ GOOGLE_API_KEY environment variable is required")
+
+client = genai.Client(api_key=api_key)
 
 MODEL = "gemini-2.0-flash"
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import json
 import asyncio
@@ -63,8 +65,12 @@ Do not include any text outside the JSON array. Do not wrap in markdown code blo
     try:
         segments = json.loads(raw)
         return segments
-    except Exception:
-        print(f"❌ Failed to parse lecture plan JSON: {raw}")
+    except json.JSONDecodeError as e:
+        print(f"❌ Failed to parse lecture plan JSON: {str(e)}")
+        print(f"Raw response: {raw}")
+        return []
+    except Exception as e:
+        print(f"❌ Unexpected error parsing lecture plan: {str(e)}")
         return []
 
 
@@ -200,6 +206,10 @@ You will be told which segment to teach. Focus only on that segment's content fr
         self._is_active = False
         if self._receive_task:
             self._receive_task.cancel()
+            try:
+                await self._receive_task
+            except asyncio.CancelledError:
+                pass
         if self.gemini_session:
             try:
                 await self.gemini_session.close()

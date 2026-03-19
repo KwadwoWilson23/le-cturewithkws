@@ -3,7 +3,14 @@ import os
 import typing
 
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+if not PAYSTACK_SECRET_KEY:
+    print("⚠️ WARNING: PAYSTACK_SECRET_KEY is missing. Payment transfers will fail.")
+
 BASE_URL = "https://api.paystack.co"
+
+PAYSTACK_CALLBACK_URL = os.getenv("PAYSTACK_CALLBACK_URL")
+if not PAYSTACK_CALLBACK_URL or "localhost" in PAYSTACK_CALLBACK_URL:
+    print("⚠️ WARNING: PAYSTACK_CALLBACK_URL may be pointing to localhost in production")
 
 def _headers():
     return {
@@ -16,7 +23,7 @@ async def initialize_payment(email: str, amount: int, metadata: typing.Optional[
         "email": email,
         "amount": amount,
         "currency": "GHS",
-        "callback_url": os.getenv("PAYSTACK_CALLBACK_URL", "http://localhost:5173/dashboard"),
+        "callback_url": PAYSTACK_CALLBACK_URL or "http://localhost:5173/dashboard",
     }
     if metadata:
         payload["metadata"] = metadata

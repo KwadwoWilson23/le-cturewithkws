@@ -42,6 +42,7 @@ def send_upgrade_email(to_email: str, plan_name: str):
     smtp_pass = os.getenv("SMTP_PASS", "")
 
     if not all([smtp_host, smtp_user, smtp_pass]):
+        print("⚠️ WARNING: SMTP configuration is incomplete. Email not sent.")
         return
 
     try:
@@ -88,8 +89,8 @@ def send_upgrade_email(to_email: str, plan_name: str):
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_user, to_email, msg.as_string())
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"⚠️ Failed to send upgrade email to {to_email}: {str(e)}")
 
 
 @router.post("/payments/initialize")
@@ -119,6 +120,10 @@ async def pay_verify(reference: str):
         customer_email = data.get("customer", {}).get("email", "")
         plan_name = data.get("metadata", {}).get("plan_name", "Premium")
 
+        metadata_updated = False
+        email_sent = False
+        errors = []
+
         if paid:
             if supabase:
                 try:
@@ -129,11 +134,20 @@ async def pay_verify(reference: str):
                             user_id,
                             {"user_metadata": {"is_premium": True, "plan": plan_name}}
                         )
+                        metadata_updated = True
                 except Exception as e:
                     print(f"❌ Failed to update Supabase metadata: {str(e)}")
+                    errors.append(f"Metadata update failed: {str(e)}")
+            else:
+                errors.append("Supabase not configured")
 
             if customer_email:
-                await asyncio.to_thread(send_upgrade_email, customer_email, plan_name)
+                try:
+                    await asyncio.to_thread(send_upgrade_email, customer_email, plan_name)
+                    email_sent = True
+                except Exception as e:
+                    print(f"❌ Failed to send email: {str(e)}")
+                    errors.append(f"Email sending failed: {str(e)}")
 
         return {
             "paid": paid,
@@ -143,6 +157,9 @@ async def pay_verify(reference: str):
             "reference": data.get("reference"),
             "paid_at": data.get("paid_at"),
             "plan": plan_name,
+            "metadata_updated": metadata_updated,
+            "email_sent": email_sent,
+            "errors": errors if errors else None,
         }
 
     raise HTTPException(status_code=400, detail="Payment verification failed.")
